@@ -1,0 +1,111 @@
+# 禁忌嵌合体 · Forbidden Chimera
+
+把幻翼和苦力怕缝在一起，然后放它们来找你。
+
+本模组加入六种"幻翼×苦力怕/末影人"嵌合体生物，外加同一种生物的两个**变体**。它们全部在**失眠之夜**顶替原版幻翼生成：你越久没睡觉，它们就越可能出现。
+
+---
+
+## 生物一览
+
+| 生物 | 它会做什么 |
+|---|---|
+| **幻翼骑士苦力怕** | 一只背上真的骑着普通苦力怕的幻翼。它发现你之后会直接朝你俯冲，贴脸时引爆背上的苦力怕，自己也不活。辛苦养的苦力怕被打死了也不会再补——它就这么飞着了。 |
+| **苦力怕投手幻翼** | 肚子底下吊着一只普通苦力怕的幻翼。它爬到你的头顶上方，把吊着的苦力怕砸下来，接着**立刻再抓一只**继续吊着，等冷却结束再砸第二次。被丢下来的苦力怕是正常苦力怕，会追你、会自己爆。 |
+| **苦力怕幻翼** | 原创嵌合体：苦力怕的头与躯干、幻翼的翅膀与尾巴。它先绕到你**斜上方约 12 格**处就位，再俯冲进场，**俯冲途中远离你时才**发射**爆炸苦力怕头颅**，贴到 7 格以内就停火——头颅是从远处斜着飞来的，看得见也躲得开。 |
+| **闪电苦力怕幻翼** | 上面那只的带电版本：AI 完全一样，只是躯干与头**在原贴图之上叠加**原版闪电苦力怕的电流特效（翅膀和尾巴干净）。它发射**闪电苦力怕头颅**（尾迹电火花），爆炸范围更大，而且几乎不会被自己的爆炸伤到。 |
+| **核弹苦力怕幻翼** | 红色的自爆型。它先在你周围盘旋，再退到你**斜上方约 10 格**悬停，悬停时**振翅越来越快**——那就是它在倒计时。悬停结束就朝你俯冲自爆，**爆炸半径 8 格**。好消息是它只有 8 颗心，悬停时完全可以打下来。 |
+| **末影人幻翼** | 末影人身体配幻翼翅膀。它**不发射头颅**，俯冲就是撞你；但它**会瞬移躲开弹射物**——弓箭基本射不中，而且躲开那一下完全不掉血。平时也会偶尔瞬移一下。近战和摔落照常吃伤害。 |
+
+### 苦力怕幻翼的两个变体
+
+同一个生物，外观不一样，游戏里**名字还是"苦力怕幻翼/闪电苦力怕幻翼"**：
+
+| 变体 | 长什么样 | 有什么不同 |
+|---|---|---|
+| **持矛**（苦力怕幻翼 / 闪电苦力怕幻翼，各 10% 概率） | 翅膀下吊着一把矛 | 矛有**七种材质**（木/石/铜/铁/金/钻石/下界合金）随机一种。俯冲撞到你时**伤害改用这把矛的公式**：矛越好、俯冲越快，打得越疼。 |
+| **骑士**（只有苦力怕幻翼，10% 概率） | 背上骑着一只小僵尸，手里拿着**重锤** | 平时照旧俯冲开火；偶尔（平均约半分钟一次）会爬到你头上再**笔直砸下来**，由小僵尸的重锤结算伤害——那一下比普通挥锤重得多。小僵尸有概率穿一整套护甲、还可能带附魔。 |
+
+两个变体不会同时出现。把小僵尸打死，坐骑就变回普通苦力怕幻翼。
+
+### 还有一位首领
+
+**首领 · 闪电苦力怕幻翼骑士**：它**不会自然生成**，只能用**禁忌板材**召出来。长着三颗凋灵头、一只坚守者头和两只末影龙首，背上是烟花火箭，背上还骑着一只拿三叉戟的小僵尸。它会：
+
+- **平时**持续朝你发射**闪电苦力怕头颅**，**连发**时才左右两侧轮流打出一串**凋灵之手**（每侧三颗头依次来）；
+- 咬合着龙首**吐龙息**；
+- 突然**点燃烟花火箭加速**扑过来，让小僵尸用三叉戟捅你；
+- 掠过后回头给你一发**坚守者音波**（10 点伤害 + 强击退）；
+- 时不时用**黑暗**笼罩周围；
+- **只怕十分之一的爆炸伤害**——TNT 对它几乎是挠痒。
+
+**怎么召**：用 6 样东西**无序合成**一块禁忌板材 —— **回响碎片 + 凋零骷髅头 + 龙首 + 幻翼膜 + 腐肉 + 火药**。拿在手上**对着地面按住右键 3 秒**，松开时它会出现在你瞄准的位置。板材用掉一块少一块。
+
+两种被丢下/被驮着的苦力怕都是**真正的原版苦力怕**：可以单独打死、会掉火药；主人死掉后它们会像普通苦力怕一样继续活动。骑士变体背上的小僵尸也一样——**可以单独打死**，坐骑死掉时它会掉下来变成普通僵尸继续追你。
+
+## 怎么遇到它们
+
+- **自然生成**：和你熟悉的原版幻翼完全同一套条件——天黑、露天、玩家在海平面以上、难度判定通过，并且**连续约 3 个游戏日没有睡觉**。满足后你会看到它们成群出现（和原版幻翼一样 1~多只）。
+- **刷怪蛋**：六种生物都有对应的刷怪蛋，创造模式刷怪蛋分类里可以直接拿（两个变体没有独立蛋，用配置把概率调高来观察）。
+- **首领的蛋**：首领**不会自然生成**，但它也有自己的刷怪蛋，同样在创造模式的刷怪蛋分类里（生存里只能靠禁忌板材召唤）。
+- **指令**：`/summon` 也能生成，具体写法（含"生成无 AI 的展示用个体"）见开发文档目录里的《本项目-生物列表与测试指令》。
+
+## 掉落
+
+- 幻翼类掉落：**幻翼膜**、**火药**（闪电苦力怕幻翼掉得更多一些）。
+- 核弹苦力怕幻翼掉得最多：**幻翼膜 2~4、火药 2~4**。
+- 末影人幻翼：**幻翼膜 1~2、末影珍珠 ×1**。
+- 被丢下/被驮着的苦力怕按原版苦力怕掉落：**火药**。
+- 骑士变体背上的小僵尸按原版小僵尸掉落；它手里的重锤也会掉。
+- 首领掉落：**幻翼膜 4~6、火药 3~5**；它背上的小僵尸另外掉三叉戟。
+
+## 配置
+
+首次启动会在 `config/forbidden_chimera.json` 生成配置，用记事本就能改。常用项：
+
+| 配置项 | 作用 |
+|---|---|
+| `enablePhantomRiderCreeper` / `enableCreeperThrowerPhantom` / `enableCreeperPhantom` / `enableLightningCreeperPhantom` / `enableNuclearCreeperPhantom` / `enableEndermanPhantom` | 分别开关六种生物 |
+| `riderSpawnWeight` / `throwerSpawnWeight` / `diverSpawnWeight` / `lightningDiverSpawnWeight` / `nuclearSpawnWeight` / `endermanSpawnWeight` | 自然生成权重（默认 3/3/4/1/1/3），改成 0 就不再自然生成 |
+| `attackCreativePlayers` | 默认开启：创造模式玩家也会被它们盯上。想按原版规则（不攻击无敌玩家）就把这里改成 `false` |
+| `chimeraSpawnerUsesPhantomGameRule` | 默认开启：`/gamerule spawn_phantoms false` 会连同本模组一起关掉。想单独保留它们就改成 `false` |
+| `riderChargeSpeed` / `riderDetonateDistanceSqr` | 骑士（mob1）的俯冲速度、引爆距离 |
+| `throwerHoverHeight` / `throwerThrowCooldownTicks` / `throwerThrowSpeed` | 投手悬停高度、投掷间隔、投出速度 |
+| `diverClimbHeight` / `diverDiveSpeed` / `diverFireCooldownTicks` | 幻翼的就位高度、俯冲速度、开火间隔 |
+| `diverApproachOffset` / `diverFireMinDistance` / `diverPassByTicks` | 幻翼在玩家斜上方多远就位（默认 12 格）；俯冲到近于此距离就停火（默认 7 格）；一次俯冲结束后最多再飞多久（默认 40 tick）。想让它们贴脸也开火就把 `diverFireMinDistance` 改成 0 |
+| `skullExplosionRadius` / `skullOwnerDamageFactor` | 普通苦力怕头颅的爆炸威力、对发射者自身的伤害比例 |
+| `lightningSkullExplosionRadius` / `lightningSkullOwnerDamageFactor` | 闪电苦力怕头颅的爆炸威力、对发射者自身的伤害比例（默认只吃 2%） |
+| `nuclearHoverHeight` / `nuclearHoverOffset` / `nuclearCircleTicks` / `nuclearHoverTicks` / `nuclearChargeSpeed` / `nuclearExplosionRadius` / `nuclearFlapSpeedMax` | 核弹苦力怕幻翼：悬停高度 / 斜上方水平外移 / 盘旋时长 / 悬停时长 / 俯冲速度 / 爆炸半径（默认 8 格）/ 悬停末端的振翅倍速 |
+| `endermanIdleTeleportChance` / `endermanSpawnWeight` | 末影人幻翼：平时每个 tick 的瞬移概率（默认 0.002）/ 生成权重 |
+| `enableSpearVariant` / `spearVariantChance` / `spearDiveDamageScale` | 持矛变体：是否启用 / 出现概率（默认 10%）/ 俯冲伤害的额外倍率（默认 1.0） |
+| `enableKnightVariant` / `knightVariantChance` | 骑士变体：是否启用 / 出现概率（默认 10%） |
+| `knightArmorChance` / `knightWeaponEnchantChance` / `knightArmorEnchantChance` | 骑手小僵尸的护甲概率（0.15）、重锤附魔概率（0.25）、护甲附魔概率（0.5） |
+| `knightClimbHeight` / `knightClimbSpeed` / `knightChargeSpeed` / `knightChargeCooldownTicks` / `knightChargeChance` / `knightSmashMinFallDistance` / `knightRespawnRider` | 骑士冲撞：爬升高度 / 爬升速度 / 俯冲速度 / 冷却 / 每周期触发概率 / 触发重锤下落加成所需的最小下降 / 骑手死后是否补充（默认否） |
+| `bossExplosionDamageFactor` | 首领吃多少爆炸伤害（默认 0.1 = 只吃 10%，**原版 TNT 也算**） |
+| `bossOrbitHeight` / `bossOrbitRadius` / `bossOrbitSpeed` / `bossOrbitTicks` | 首领盘旋：高度 / 半径 / 速度 / 时长 |
+| `bossSideArmCooldownTicks` | 首领**平时**（不俯冲时）多久发一颗**闪电苦力怕头颅**（默认 60 tick） |
+| `bossSalvoCount` / `bossSalvoIntervalTicks` | **连发**（齐射）一轮几颗**凋灵之手** / 每颗间隔（默认 5 颗、3 tick） |
+| `bossDragonBreathCount` / `bossDragonBreathIntervalTicks` / `bossDragonBreathFirstTick` | 龙息：几发 / 间隔 / 张口后第几 tick 出第一发（默认 7 = 0.35 秒，与动画张口帧对齐） |
+| `bossSonicBoomTick` | 音波在动画里的第几 tick 触发（默认 20） |
+| `bossDarknessRadius` / `bossDarknessDurationTicks` | 黑暗的作用半径 / 持续时间 |
+| `bossRocketBoostTicks` / `bossRocketBoostMultiplier` / `bossDiveSpeed` / `bossMaxDiveTicks` | 烟花加速：持续 tick / 提速倍率 / 俯冲速度 / 俯冲最长 tick |
+
+改完保存，**新生成**的生物就会用新数值（已经存在的那只不会变）。
+
+## 安装
+
+1. 安装对应加载器的 Minecraft（本模组双端支持 **Fabric** 与 **NeoForge**）。
+2. **必须**安装前置 **GeckoLib**（苦力怕幻翼与闪电苦力怕幻翼的模型动画由它驱动）；Fabric 端还需要 **Fabric API**。
+3. 把本模组的 jar 丢进 `mods` 文件夹。
+4. 启动游戏即可，无需额外数据包。
+
+## 反馈
+
+- 主页（源码）：https://github.com/Huziyang520/Forbidden-Chimera
+- 问题反馈：https://github.com/Huziyang520/Forbidden-Chimera/issues
+- 备用问题反馈：https://issue.mengcai.online/
+- 作者：Huziyang520
+
+## 许可
+
+MIT。

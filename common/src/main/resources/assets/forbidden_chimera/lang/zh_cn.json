@@ -1,0 +1,19 @@
+{
+  "entity.forbidden_chimera.phantom_rider_creeper": "幻翼骑士苦力怕",
+  "entity.forbidden_chimera.creeper_thrower_phantom": "苦力怕投手幻翼",
+  "entity.forbidden_chimera.creeper_phantom": "苦力怕幻翼",
+  "entity.forbidden_chimera.lightning_creeper_phantom": "闪电苦力怕幻翼",
+  "entity.forbidden_chimera.nuclear_creeper_phantom": "核弹苦力怕幻翼",
+  "entity.forbidden_chimera.creeper_skull": "爆炸苦力怕头颅",
+  "entity.forbidden_chimera.lightning_creeper_skull": "闪电苦力怕头颅",
+  "item.forbidden_chimera.phantom_rider_creeper_spawn_egg": "幻翼骑士苦力怕刷怪蛋",
+  "item.forbidden_chimera.creeper_thrower_phantom_spawn_egg": "苦力怕投手幻翼刷怪蛋",
+  "item.forbidden_chimera.creeper_phantom_spawn_egg": "苦力怕幻翼刷怪蛋",
+  "item.forbidden_chimera.lightning_creeper_phantom_spawn_egg": "闪电苦力怕幻翼刷怪蛋",
+  "entity.forbidden_chimera.enderman_phantom": "末影人幻翼",
+  "item.forbidden_chimera.nuclear_creeper_phantom_spawn_egg": "核弹苦力怕幻翼刷怪蛋",
+  "item.forbidden_chimera.enderman_phantom_spawn_egg": "末影人幻翼刷怪蛋",
+  "entity.forbidden_chimera.boss_lightning_creeper_phantom_knight": "首领·闪电苦力怕幻翼骑士",
+  "item.forbidden_chimera.boss_lightning_creeper_phantom_knight_spawn_egg": "首领·闪电苦力怕幻翼骑士刷怪蛋",
+  "item.forbidden_chimera.forbidden_plank": "禁忌板材"
+}

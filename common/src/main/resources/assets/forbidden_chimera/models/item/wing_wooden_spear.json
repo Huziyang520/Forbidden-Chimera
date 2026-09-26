@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/wooden_spear",
+  "textures": {
+    "layer0": "minecraft:item/wooden_spear"
+  }
+}

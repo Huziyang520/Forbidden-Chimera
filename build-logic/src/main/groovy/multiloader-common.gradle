@@ -1,0 +1,94 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+base {
+    // Publish artifact name: <mod_id>-<version>-<loader>-<minecraft_version>
+    archivesName = "${mod_id}-${version}-${project.name}-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+    // Intentionally NOT producing sources/javadoc jars:
+    // withJavadocJar() enables strict doclint which can hang the whole build on Java 25.
+}
+
+// Both plain Jar and Loom's RemapJarTask extend AbstractArchiveTask. Clearing archiveVersion on
+// AbstractArchiveTask (not Jar) is required, otherwise the version gets appended a second time and
+// you end up with forbidden_chimera-1.0.0-fabric-26.3-1.0.0.jar.
+tasks.withType(AbstractArchiveTask).configureEach {
+    archiveVersion = ''
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Jar).configureEach {
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_${mod_name}" }
+    }
+
+    manifest {
+        attributes([
+                'Specification-Title'   : mod_name,
+                'Specification-Vendor'  : mod_author,
+                'Specification-Version' : version,
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': version,
+                'Implementation-Vendor' : mod_author,
+                'Built-On-Minecraft'    : minecraft_version
+        ])
+    }
+}
+
+processResources {
+    var expandProps = [
+            'version'                 : version,
+            'group'                   : project.group, //Else we target the task's group.
+            'minecraft_version'       : minecraft_version,
+            'minecraft_version_range' : minecraft_version_range,
+            'fabric_version'          : fabric_version,
+            'fabric_loader_version'   : fabric_loader_version,
+            'mod_name'                : mod_name,
+            'mod_author'              : mod_author,
+            'mod_id'                  : mod_id,
+            'license'                 : license,
+            'description'             : project.description,
+            'neoforge_version'        : neoforge_version,
+            'credits'                 : credits,
+            'java_version'            : java_version
+    ]
+
+    // Property values are escaped for JSON. NOTE: this only protects the *values* substituted in,
+    // it does NOT protect literal escapes written in the template body. Never write \n / \t / \u
+    // inside a JSON file that goes through expand().
+    var jsonExpandProps = expandProps.collectEntries {
+        key, value -> [(key): value instanceof String ? value.replace('\n', '\\\\n') : value]
+    }
+
+    filesMatching(['META-INF/mods.toml', 'META-INF/neoforge.mods.toml']) {
+        expand expandProps
+    }
+
+    filesMatching(['pack.mcmeta', 'fabric.mod.json', '*.mixins.json']) {
+        expand jsonExpandProps
+    }
+
+    inputs.properties(expandProps)
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId base.archivesName.get()
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url System.getenv('local_maven_url')
+        }
+    }
+}

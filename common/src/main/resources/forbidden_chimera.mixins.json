@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.huziyang520.forbiddenchimera.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "MobAccessor",
+    "PhantomAccessor",
+    "PhantomMixin",
+    "PhantomSpawnerMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

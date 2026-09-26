@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "category": "misc",
+    "ingredients": [
+        "minecraft:echo_shard",
+        "minecraft:wither_skeleton_skull",
+        "minecraft:dragon_head",
+        "minecraft:phantom_membrane",
+        "minecraft:rotten_flesh",
+        "minecraft:gunpowder"
+    ],
+    "result": {
+        "count": 1,
+        "id": "forbidden_chimera:forbidden_plank"
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "parent": "minecraft:item/generated",
+    "textures": {
+        "layer0": "forbidden_chimera:item/boss_lightning_creeper_phantom_knight_spawn_egg"
+    }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/golden_spear",
+  "textures": {
+    "layer0": "minecraft:item/golden_spear"
+  }
+}
