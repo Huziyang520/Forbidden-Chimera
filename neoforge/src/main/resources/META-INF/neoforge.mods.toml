@@ -9,7 +9,7 @@ displayName = "${mod_name}" #mandatory
 # 26.2+ uses iconFile for the square list icon and bannerFile for the wide detail banner.
 # logoFile is deprecated. These fields only work inside the [[mods]] sub-table.
 iconFile = "${mod_id}.png"
-displayURL = "https://github.com/Huziyang520/Forbidden-Chimera"
+displayURL = "https://www.curseforge.com/minecraft/mc-mods/forbidden-chimera"
 authors = "${mod_author}" #optional
 credits = "${credits}" #optional
 description = '''${description}''' #mandatory (Supports multiline text)
