@@ -101,6 +101,14 @@ public class BossLightningCreeperPhantomKnightEntity extends LightningCreeperPha
 
     /** Ticks left before the next lightning skull of the side arm. Lives on the entity, never freezes. */
     private int sideArmCooldown;
+    /**
+     * 距上一次侧臂（闪电苦力怕头颅）射击过去了多少 tick，每 tick 自增、{@link #fireSideArmSkull} 里清零。
+     *
+     * <p>存在的理由：{@link BossAttackGoal} 要在进入火箭/俯冲之前留出一段宽限，避免"刚射完一发就贴脸
+     * 冲锋"，把自己打出去的头颅炸到自己身上。计数放在实体上而不是 Goal 里，因为 Goal 一旦失去目标就
+     * 停止 tick，字段会冻住。
+     */
+    private int sideArmAge;
     /** Which wing the next volley comes from: 0 = left, 1 = right. Alternates. */
     private int witherSide;
     /** Which of that wing's three heads fires next. */
@@ -109,6 +117,15 @@ public class BossLightningCreeperPhantomKnightEntity extends LightningCreeperPha
     private boolean bossDiving;
     /** Whether the one time rider hand out has already happened. See the first tick in {@link #tick}. */
     private boolean riderInitialised;
+    /**
+     * Ticks until the next re-adopt scan while the boss has no rider.
+     *
+     * <p>{@link #tickRider} only needs the rider field back after a chunk reload; searching every tick
+     * once the rider is permanently dead is pure waste. See {@link #RIDER_RESCAN_INTERVAL}.
+     */
+    private int riderRescanCooldown;
+    /** How often the boss looks for a rider it lost to a reload. One second is plenty. */
+    private static final int RIDER_RESCAN_INTERVAL = 20;
 
     // --- 高低差脱困 (stuck on a ledge) --------------------------------------
     /** 观察窗口起点的位置；与 {@link #stuckTicks} 一起判断"有没有真的挪动"。 */
@@ -216,11 +233,18 @@ public class BossLightningCreeperPhantomKnightEntity extends LightningCreeperPha
             // A reload loses the field, not the entity: the rider comes back as our passenger, so
             // re-adopt it. Without this the restored zombie would ride along as a stranger we could no
             // longer release when we die.
-            if (this.riderInitialised) {
+            //
+            // Throttled: the search inflates a 16 block box, and once the rider is dead for good this
+            // branch is reached on every single tick for the rest of the boss's life. A rescan every
+            // RIDER_RESCAN_INTERVAL ticks finds a reloaded rider just as well - the field it restores is
+            // only ever read for anchoring and release, neither of which cares about a one second delay.
+            if (this.riderInitialised && --this.riderRescanCooldown <= 0) {
+                this.riderRescanCooldown = RIDER_RESCAN_INTERVAL;
                 this.setRider(PhantomRider.findOwned(this));
             }
             return;
         }
+        this.riderRescanCooldown = 0;
         PhantomRider.anchor(this, current);
     }
 
@@ -330,6 +354,18 @@ public class BossLightningCreeperPhantomKnightEntity extends LightningCreeperPha
     public void fireSideArmSkull(LivingEntity target) {
         this.fireLightningSkull(target, SIDE_ARM_SPREAD);
         this.sideArmCooldown = ForbiddenChimeraConfig.get().bossSideArmCooldownTicks;
+        // 记录"刚开过火"的时刻，供 BossAttackGoal 的冲锋宽限判断使用。
+        this.sideArmAge = 0;
+    }
+
+    /**
+     * 距上一次侧臂射击过去了多少 tick。
+     *
+     * <p>只读：只有 {@link #fireSideArmSkull} 会清零，{@link #tick} 每 tick 自增。给
+     * {@link BossAttackGoal} 判断"现在适不适合转入火箭/俯冲"用。
+     */
+    public int sideArmAge() {
+        return this.sideArmAge;
     }
 
     /**
@@ -487,6 +523,8 @@ public class BossLightningCreeperPhantomKnightEntity extends LightningCreeperPha
         if (this.sideArmCooldown > 0) {
             this.sideArmCooldown--;
         }
+        // 无论是否开火都要走时间：宽限判断看的是"距上次射击多久"，不是冷却剩余。
+        this.sideArmAge++;
         LivingEntity target = this.getTarget();
         if (target != null && !this.bossDiving && this.sideArmCooldown <= 0) {
             // 平时（俯冲之外）就是这一发：闪电苦力怕头颅。凋灵之手是连发，见 BossAttackGoal。

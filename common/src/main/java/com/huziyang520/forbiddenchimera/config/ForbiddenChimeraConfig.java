@@ -26,8 +26,25 @@ public final class ForbiddenChimeraConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = Constants.MOD_ID + ".json";
 
+    /**
+     * 当前配置格式版本，含义见 {@link #configVersion}。
+     *
+     * <p>只增不改：调整了<b>已有键的默认值</b>、并且希望老配置文件也吃到新默认值时 +1，
+     * 同时在 {@link #migrateStoredDefaults(JsonObject)} 里补上对应的覆盖逻辑。
+     */
+    private static final int CONFIG_VERSION = 2;
+
     private static ForbiddenChimeraConfig instance = new ForbiddenChimeraConfig();
     private static Path configFile;
+
+    // --- 配置版本 ----------------------------------------------------------
+    /**
+     * 这份配置的格式版本，用于把老配置文件里<b>过时的默认值</b>升级成新默认值。
+     *
+     * <p>手改 JSON 里的默认值不会影响已经存在的配置文件（文件里的值优先），所以每次调整默认值都要
+     * 靠这个版本号触发一次迁移，否则老玩家看不到修复。请勿手改，除非想主动让迁移重跑一次。
+     */
+    public int configVersion = CONFIG_VERSION;
 
     // --- mob toggles -------------------------------------------------------
     public boolean enablePhantomRiderCreeper = true;
@@ -96,6 +113,15 @@ public final class ForbiddenChimeraConfig {
      * phantom simply keeps pressing and passes by the target once, then breaks off.
      */
     public int diverPassByTicks = 40;
+    /**
+     * 俯冲<b>开始前</b>先在就位点打几轮头颅（mob3 / mob4）。
+     *
+     * <p>这是把"俯冲途中只开一枪"补成一段可读的远程压制：先连打几轮，玩家有时间找掩体，
+     * 之后才是贴脸的俯冲。0 就恢复成"俯冲时才开火"的旧行为。
+     */
+    public int diverSalvoCount = 3;
+    /** 上面那几轮之间的间隔 tick。 */
+    public int diverSalvoIntervalTicks = 12;
     public int diverFireCooldownTicks = 60;
     /** Dive is aborted after this many ticks even without a hit. */
     public int diverMaxDiveTicks = 80;
@@ -169,6 +195,21 @@ public final class ForbiddenChimeraConfig {
      * other carries on", and a knight is a one-off encounter, not a recurring threat.
      */
     public boolean knightRespawnRider = false;
+    /**
+     * 骑士/首领坐骑背上那只幼年僵尸的最大生命值。
+     *
+     * <p>骑手是<b>真·原版僵尸</b>，血量来自原版的属性表（20 点）且无法在注册时覆盖，
+     * 所以只能生成后写实例属性；比原版高，是为了让它扛得住坐骑自己的爆炸。
+     */
+    public double riderMaxHealth = 50.0D;
+    /**
+     * <b>骑在/挂在爆炸源身上的乘客</b>吃爆炸伤害的倍率，0.1 = 减免 90%。
+     *
+     * <p>按 {@code ChimeraExplosion} 的实现，它作用于"根载具 == 被保护者"的实体，也就是坐骑背上那只
+     * 幼年僵尸（以及 mob1 吊着的苦力怕）：坐骑自爆时不会顺手把乘客一起带走。与
+     * {@code bossExplosionDamageFactor} 是两回事，那个管的是首领<b>自己</b>吃多少爆炸伤害。
+     */
+    public double riderExplosionDamageFactor = 0.1D;
 
     // --- 末影人幻翼 (enderman phantom) ------------------------------------
     public boolean enableEndermanPhantom = true;
@@ -193,7 +234,7 @@ public final class ForbiddenChimeraConfig {
     /** Cruise speed while circling and hovering; slow on purpose, it is a showpiece. */
     public double nuclearApproachSpeed = 1.0D;
     /** How long it circles at altitude before committing to the attack. */
-    public int nuclearCircleTicks = 100;
+    public int nuclearCircleTicks = 40;
     /** How long it hovers - the wing flap accelerates over exactly this span - before the charge. */
     public int nuclearHoverTicks = 80;
     /** Charge speed. It is a missile at this point; nothing about it is dodgeable. */
@@ -201,7 +242,11 @@ public final class ForbiddenChimeraConfig {
     /** The charge self-detonates after this many ticks even if it never touches the target. */
     public int nuclearChargeMaxTicks = 60;
     /** Blast radius of the nuclear charge. Deliberately huge. */
-    public double nuclearExplosionRadius = 8.0D;
+    public double nuclearExplosionRadius = 10.0D;
+    /** 爆炸后落在范围内的实体被点燃的 tick 数（原版火焰每 tick 烧 1 点，100 tick = 5 秒）。 */
+    public int nuclearExplosionFireTicks = 100;
+    /** 爆炸范围内每个地表方块留下火焰的概率；0 就是不留火。 */
+    public double nuclearExplosionFireChance = 0.25D;
     /** Wing flap speed at the end of the hover ramp (it starts at 1.0). */
     public double nuclearFlapSpeedMax = 3.0D;
 
@@ -235,6 +280,13 @@ public final class ForbiddenChimeraConfig {
      * <p>这是玩家最常看到的那一招；<b>凋灵之手</b>是连发，见下面的 salvo 两项。
      */
     public int bossSideArmCooldownTicks = 60;
+    /**
+     * 首领发射侧臂头颅后，至少隔这么多 tick 才允许进入火箭俯冲。
+     *
+     * <p>否则侧臂连发和俯冲会叠在同一瞬间：玩家看到的是"贴脸吐头 + 立刻被撞"，两次伤害挨在一起
+     * 就只剩一次可反应的机会。
+     */
+    public int bossSideArmDiveGraceTicks = 30;
     /** 连发（齐射）里发射多少颗<b>凋灵之手</b>。 */
     public int bossSalvoCount = 5;
     /** 连发中每两颗凋灵之手之间的间隔。 */
@@ -273,6 +325,13 @@ public final class ForbiddenChimeraConfig {
      */
     public int riderSpawnWeight = 3;
     public int throwerSpawnWeight = 3;
+    /**
+     * 刷怪表里<b>纯原版幻翼</b>（不携带货物、行为与原版完全一致）的权重。
+     *
+     * <p>它不是"关掉嵌合体"的开关：权重表里没有它的时候，自然生成的幻翼 100% 都是嵌合体，
+     * 原版幻翼就彻底消失了。改成 0 才会回到那种状态。
+     */
+    public int vanillaSpawnWeight = 4;
     public int diverSpawnWeight = 4;
     /** Naturally rarer than the plain diver: it hits much harder. */
     public int lightningDiverSpawnWeight = 1;
@@ -353,6 +412,10 @@ public final class ForbiddenChimeraConfig {
             return new ForbiddenChimeraConfig();
         }
 
+        // 迁移必须跑在"补键"之前：老配置文件里根本没有 configVersion 这个键，一旦先回填就会被填成
+        // 新版本号，迁移条件就永远不成立。这里直接读原始 JSON，缺键时按 0 处理（= v1 之前的老配置）。
+        migrateStoredDefaults(stored);
+
         JsonObject defaults = GSON.toJsonTree(new ForbiddenChimeraConfig()).getAsJsonObject();
         List<String> added = new ArrayList<>();
         for (Map.Entry<String, JsonElement> entry : defaults.entrySet()) {
@@ -368,6 +431,56 @@ public final class ForbiddenChimeraConfig {
 
         ForbiddenChimeraConfig merged = GSON.fromJson(stored, ForbiddenChimeraConfig.class);
         return merged != null ? merged : new ForbiddenChimeraConfig();
+    }
+
+    /**
+     * 把老配置文件里<b>过时的默认值</b>升级成新默认值，只改迁移明确列出的键。
+     *
+     * <p>为什么需要它：手写 JSON 里"文件里的值优先"，所以改了字段默认值只会影响新生成的配置文件，
+     * 老玩家那份仍留着旧数字，修复看起来像没生效。版本号在这里充当"迁移只跑一次"的闸门——
+     * 迁移完就把 {@code configVersion} 写成当前版本，下次启动条件不再成立。
+     *
+     * <p>刻意不覆盖用户自己调过的其它键：每次迁移只碰"本次改过默认值"的那几个。
+     *
+     * @param stored 刚从文件里读出的原始 JSON（<b>尚未</b>补过缺失键）。
+     */
+    private static void migrateStoredDefaults(JsonObject stored) {
+        // 缺 configVersion 说明是加版本号之前写的配置，按 0 处理。
+        int storedVersion = readStoredVersion(stored);
+        if (storedVersion >= CONFIG_VERSION) {
+            return;
+        }
+
+        // v1 -> v2：玩家反馈核弹幻翼盘旋太久、爆炸范围偏小。
+        // 只覆盖这两个键：它们的旧默认值（100 / 8.0）本身就是"默认值"，不是玩家的调参结果，
+        // 所以升级不会踩掉任何有意为之的配置。
+        stored.addProperty("nuclearCircleTicks", 40);
+        stored.addProperty("nuclearExplosionRadius", 10.0D);
+        stored.addProperty("configVersion", CONFIG_VERSION);
+        Constants.LOG.info(
+                "已升级配置默认值 {} -> {}：核弹苦力怕幻翼的盘旋时长 nuclearCircleTicks=40、"
+                        + "爆炸半径 nuclearExplosionRadius=10.0（只覆盖这两项，其它键保持你的设置）",
+                storedVersion, CONFIG_VERSION);
+    }
+
+    /**
+     * 读取文件里的版本号，任何读不出来的情况都当作 0（最老配置）。
+     *
+     * <p>这里刻意不用 {@code getAsInt()}：它是<b>抛异常</b>的，玩家把 {@code configVersion} 手写成
+     * 字符串或对象时，异常会被 {@link #load(Path)} 捕获成"整份配置读取失败"并退回默认值，
+     * 那等于顺手清空玩家所有调过的设置。版本号本身只是迁移闸门，读坏了重跑一次迁移即可。
+     */
+    private static int readStoredVersion(JsonObject stored) {
+        JsonElement version = stored.get("configVersion");
+        if (version == null || !version.isJsonPrimitive()
+                || !version.getAsJsonPrimitive().isNumber()) {
+            return 0;
+        }
+        try {
+            return version.getAsInt();
+        } catch (RuntimeException exception) {
+            return 0;
+        }
     }
 
     public static void save() {

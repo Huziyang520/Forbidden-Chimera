@@ -11,6 +11,8 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -82,6 +84,9 @@ public final class PhantomRider {
         if (owned != null) {
             // An adopted rider may have been dismounted (death of an older host, a manual ejection,
             // or a save that lost the passenger link): re-seat it instead of spawning a duplicate.
+            // The health call is repeated here on purpose: a rider created by an older version still
+            // carries vanilla's 20 points, and this is the only moment it passes through our code again.
+            applyRiderHealth(owned);
             anchor(host, owned);
             return owned;
         }
@@ -102,10 +107,39 @@ public final class PhantomRider {
         rider.setNoGravity(true);
         rider.setPersistenceRequired();
         rider.addTag(tagFor(host));
+        applyRiderHealth(rider);
         equip(level, host, rider, weapon);
         level.addFreshEntity(rider);
         anchor(host, rider);
         return rider;
+    }
+
+    /**
+     * Gives the rider its configured health pool and fills it up.
+     *
+     * <p>The rider is a <b>vanilla</b> zombie, so its 20-point health comes from vanilla's own attribute
+     * supplier and cannot be overridden at registration - the instance attribute has to be written here.
+     * Called before {@code addFreshEntity} so the entity is never visible for a tick with the vanilla
+     * value. {@code getAttribute} is nullable (an attribute the supplier never registered), hence the
+     * null check instead of an assert.
+     */
+    private static void applyRiderHealth(Zombie rider) {
+        AttributeInstance maxHealth = rider.getAttribute(Attributes.MAX_HEALTH);
+        if (maxHealth == null) {
+            return;
+        }
+        double configured = ForbiddenChimeraConfig.get().riderMaxHealth;
+        boolean raised = maxHealth.getBaseValue() != configured;
+        maxHealth.setBaseValue(configured);
+        if (!raised) {
+            // Already at the configured pool: leave the current health alone. Without this guard the
+            // adopt path would fully heal a wounded rider every time the host reloads, because the
+            // boss re-adopts its passenger on load.
+            return;
+        }
+        // Just raised from vanilla's 20 (fresh spawn, or a rider saved by an older version): fill it up,
+        // since vanilla only ever clamps health downwards and would otherwise leave a 20/50 bar.
+        rider.setHealth(rider.getMaxHealth());
     }
 
     /** Keeps the rider mounted on the host's back. Called every tick; idempotent. */

@@ -47,19 +47,38 @@ public enum ChimeraVariant {
     }
 
     /**
-     * Weighted roll between the enabled vanilla-combination chimeras.
+     * Weighted roll between the variants a <b>vanilla phantom</b> can become on its own.
      *
-     * <p>Only the rider and thrower live on vanilla phantoms; the diver (mob3) is a real entity type
-     * and never comes out of this roll. Weights are read live so config edits apply to the next spawn.
+     * <p>Used for every phantom whose variant was never assigned by
+     * {@link com.huziyang520.forbiddenchimera.world.ChimeraSpawner} - i.e. a vanilla
+     * {@code minecraft:phantom} spawn egg, {@code /summon}, or another mod creating one. Before 1.1.9
+     * this roll only knew RIDER and THROWER, so <b>every</b> egg/summoned phantom came out as a creeper
+     * carrier and a vanilla phantom could not be produced at all.
+     *
+     * <p>Only the variants that physically fit a vanilla phantom are in here: the diver (mob3),
+     * lightning (mob4), nuclear (mob5) and enderman (mob6) chimeras are real registered entity types
+     * with their own spawn eggs, and a {@code minecraft:phantom} entity cannot turn into another
+     * entity type. Natural spawning picks all seven in {@code ChimeraSpawner#candidates}, which is
+     * where the {@code vanillaSpawnWeight} of the full table is honoured.
+     *
+     * <p>Weights are read live so config edits apply to the next spawn. If every weight is 0 (or the
+     * two carriers are disabled) the phantom stays vanilla rather than becoming a chimera.
      */
     public static ChimeraVariant roll(RandomSource random, ForbiddenChimeraConfig config) {
+        int vanillaWeight = Math.max(0, config.vanillaSpawnWeight);
         int riderWeight = config.enablePhantomRiderCreeper ? Math.max(0, config.riderSpawnWeight) : 0;
         int throwerWeight = config.enableCreeperThrowerPhantom ? Math.max(0, config.throwerSpawnWeight) : 0;
-        int total = riderWeight + throwerWeight;
+        int total = vanillaWeight + riderWeight + throwerWeight;
         if (total <= 0) {
             return VANILLA;
         }
-        return random.nextInt(total) < riderWeight ? RIDER : THROWER;
+        int roll = random.nextInt(total);
+        roll -= vanillaWeight;
+        if (roll < 0) {
+            return VANILLA;
+        }
+        roll -= riderWeight;
+        return roll < 0 ? RIDER : THROWER;
     }
 
     /** @return whether this variant carries a creeper at all. */

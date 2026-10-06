@@ -97,6 +97,16 @@ public class CreeperPhantomEntity extends AbstractChimeraPhantom implements GeoE
     /** NBT key marking that this individual already handed out its knight rider once. */
     private static final String RIDER_ATTACHED_KEY = "ForbiddenChimeraRiderAttached";
     /**
+     * NBT keys for the three cooldowns and the armed flag.
+     *
+     * <p>These are part of the save format: never rename them, or every loaded chimera forgets its
+     * cooldowns (which is the bug they exist to fix) and dives the instant the chunk comes back.
+     */
+    private static final String FIRE_COOLDOWN_KEY = "ForbiddenChimeraFireCooldown";
+    private static final String ATTACK_COOLDOWN_KEY = "ForbiddenChimeraAttackCooldown";
+    private static final String CHARGE_COOLDOWN_KEY = "ForbiddenChimeraChargeCooldown";
+    private static final String CHARGE_ARMED_KEY = "ForbiddenChimeraChargeArmed";
+    /**
      * {@code KineticWeapon#damageEntities} scales every speed threshold by the attacker's "action
      * factor": 1.0 for players, 0.2 for everything else. A diving chimera is a mob, so it uses 0.2 -
      * the same value vanilla would apply, not a hand tuned number.
@@ -319,6 +329,15 @@ public class CreeperPhantomEntity extends AbstractChimeraPhantom implements GeoE
         // Always written, so a reloaded chimera is never re-rolled.
         output.putBoolean(VARIANT_ROLLED_KEY, true);
         output.putBoolean(RIDER_ATTACHED_KEY, this.riderEverAttached);
+        // Cooldowns live on the entity, so they have to be persisted with it: without this a chunk
+        // reload zeroed them, and an unloaded-and-reloaded chimera came back with its dive and its
+        // charge both immediately available - which is exactly the "it charges again the instant I
+        // come back" behaviour. chargeArmed matters most: it is a decision already rolled, and losing
+        // it silently drops a charge the player was owed.
+        output.putInt(FIRE_COOLDOWN_KEY, this.fireCooldown);
+        output.putInt(ATTACK_COOLDOWN_KEY, this.attackCooldown);
+        output.putInt(CHARGE_COOLDOWN_KEY, this.chargeCooldown);
+        output.putBoolean(CHARGE_ARMED_KEY, this.chargeArmed);
     }
 
     @Override
@@ -332,6 +351,10 @@ public class CreeperPhantomEntity extends AbstractChimeraPhantom implements GeoE
         // Persisted for the same reason the boss's is: otherwise a chunk reload resets it and
         // `knightRespawnRider = false` ("whichever dies, the other carries on") stops holding.
         this.riderEverAttached = input.getBooleanOr(RIDER_ATTACHED_KEY, false);
+        this.fireCooldown = input.getIntOr(FIRE_COOLDOWN_KEY, 0);
+        this.attackCooldown = input.getIntOr(ATTACK_COOLDOWN_KEY, 0);
+        this.chargeCooldown = input.getIntOr(CHARGE_COOLDOWN_KEY, 0);
+        this.chargeArmed = input.getBooleanOr(CHARGE_ARMED_KEY, false);
     }
 
     // --- GeckoLib animation -------------------------------------------------

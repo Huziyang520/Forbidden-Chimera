@@ -150,7 +150,13 @@ public final class ChimeraSpawner {
 
     /** Weighted spawn table rebuilt on every attempt so config edits take effect without a restart. */
     private static List<Candidate> candidates(ForbiddenChimeraConfig config) {
-        List<Candidate> candidates = new ArrayList<>(3);
+        List<Candidate> candidates = new ArrayList<>(7);
+        // 纯原版幻翼（不携带货物）。它在表里是<b>有意</b>存在的：没有这一项时，自然生成的幻翼
+        // 100% 都是嵌合体，原版幻翼等于从世界里消失；玩家要的是"嵌合体替代原版刷怪器"，
+        // 不是"嵌合体顶掉原版幻翼"。
+        if (config.vanillaSpawnWeight > 0) {
+            candidates.add(new Candidate(ChimeraVariant.VANILLA, null, config.vanillaSpawnWeight));
+        }
         if (config.enablePhantomRiderCreeper && config.riderSpawnWeight > 0) {
             candidates.add(new Candidate(ChimeraVariant.RIDER, null, config.riderSpawnWeight));
         }

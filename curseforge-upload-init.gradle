@@ -29,8 +29,8 @@ def API_BASE = 'https://minecraft.curseforge.com/api'
 
 // 模块 → 可分发 jar。产物以 build/libs 里 actual 存在的文件为准，脚本只做校验不做构建。
 def MODULES = [
-    'fabric'  : [jar: 'fabric/build/libs/forbidden_chimera-1.1.8-fabric-26.3.jar',      loader: 'Fabric',  display: 'Forbidden Chimera 1.1.8 (Fabric) for Minecraft 26.3'],
-    'neoforge': [jar: 'neoforge/build/libs/forbidden_chimera-1.1.8-neoforge-26.3.jar',  loader: 'NeoForge', display: 'Forbidden Chimera 1.1.8 (NeoForge) for Minecraft 26.3'],
+    'fabric'  : [jar: 'fabric/build/libs/forbidden_chimera-1.1.10-fabric-26.3.jar',      loader: 'Fabric',  display: 'Forbidden Chimera 1.1.10 (Fabric) for Minecraft 26.3'],
+    'neoforge': [jar: 'neoforge/build/libs/forbidden_chimera-1.1.10-neoforge-26.3.jar',  loader: 'NeoForge', display: 'Forbidden Chimera 1.1.10 (NeoForge) for Minecraft 26.3'],
 ]
 
 // 前置：GeckoLib 必装（两端都要）。

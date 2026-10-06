@@ -3,8 +3,10 @@ package com.huziyang520.forbiddenchimera.ai;
 import com.huziyang520.forbiddenchimera.config.ForbiddenChimeraConfig;
 import com.huziyang520.forbiddenchimera.entity.NuclearCreeperPhantomEntity;
 import com.huziyang520.forbiddenchimera.world.ChimeraExplosion;
+import com.huziyang520.forbiddenchimera.world.ChimeraFire;
 import java.util.EnumSet;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
@@ -17,10 +19,11 @@ import net.minecraft.world.phys.Vec3;
  *   <li><b>hover</b> - take position above <b>and beside</b> the target ({@code nuclearHoverOffset}
  *       blocks out) and hover for {@code nuclearHoverTicks}, the wing flap accelerating the whole time
  *       (driven by the animation controller off the synced hover counter);</li>
- *   <li><b>charge</b> - dive at the target at {@code nuclearChargeSpeed}. Because the hover point is
- *       offset, this is a visible diagonal dive, not a drop from straight overhead;</li>
+ *   <li><b>charge</b> - dive at the target at {@code nuclearChargeSpeed}, nose and head locked onto the
+ *       player. Because the hover point is offset, this is a visible diagonal dive, not a drop from
+ *       straight overhead;</li>
  *   <li><b>detonate</b> - self destruct on contact, or after {@code nuclearChargeMaxTicks}, with a
- *       {@code nuclearExplosionRadius} blast.</li>
+ *       {@code nuclearExplosionRadius} blast that also leaves the area on fire.</li>
  * </ol>
  *
  * <p>Unlike the divers this one has no ranged attack at all: it is a single-use missile.
@@ -44,6 +47,15 @@ public class NuclearAttackGoal extends Goal {
      * before the charge.
      */
     private static final int AIM_TICKS = 12;
+    /**
+     * Horizontal stand-off kept between the mob and its steering point during the dive.
+     *
+     * <p>See {@link #tickCharge}: the flight move control derives the body yaw from
+     * {@code atan2(dz, dx)} of the point it is steering at, so that point must never sit directly above or
+     * below the mob or the bearing degenerates and the nose swings to an arbitrary direction. Keeping a
+     * small horizontal offset keeps the bearing - and therefore the facing - on the player.
+     */
+    private static final double CHARGE_MIN_HORIZONTAL = 0.5D;
 
     private final NuclearCreeperPhantomEntity mob;
     private int phase = PHASE_CIRCLE;
@@ -58,6 +70,22 @@ public class NuclearAttackGoal extends Goal {
      */
     private double hoverX;
     private double hoverZ;
+    /**
+     * The orbit's own zero point: the tick the circling began, and the bearing the mob already had at
+     * that moment.
+     *
+     * <p>The angle used to be read straight off {@code mob.tickCount}, i.e. off a clock that had been
+     * running since the mob spawned. Entering the circling phase therefore teleported the goal post to
+     * whatever azimuth that absolute clock happened to be at, somewhere else on the ring, and the mob
+     * spent the whole phase sprinting sideways across the sky to catch a point that was itself moving -
+     * which is what read as "endlessly spinning in circles". Anchored to its own entry bearing, the mob
+     * starts the orbit exactly where it already is and simply follows the ring.
+     */
+    private int circleStartTick;
+    private double circleStartAngle;
+    /** Unit horizontal bearing onto the player, carried across ticks so the dive never loses its aim. */
+    private double chargeDirX;
+    private double chargeDirZ;
 
     public NuclearAttackGoal(NuclearCreeperPhantomEntity mob) {
         this.mob = mob;
@@ -76,9 +104,12 @@ public class NuclearAttackGoal extends Goal {
 
     @Override
     public void start() {
+        LivingEntity target = this.mob.getTarget();
         this.phase = PHASE_CIRCLE;
         this.phaseTicks = 0;
         this.chargeTicks = 0;
+        this.circleStartTick = this.mob.tickCount;
+        this.circleStartAngle = target == null ? 0.0D : this.bearingTo(target);
         this.mob.setNuclearPhase(NuclearCreeperPhantomEntity.PHASE_CIRCLE);
     }
 
@@ -105,8 +136,13 @@ public class NuclearAttackGoal extends Goal {
         }
     }
 
+    /** The azimuth the mob currently sits at, seen from the target. */
+    private double bearingTo(LivingEntity target) {
+        return Math.atan2(this.mob.getZ() - target.getZ(), this.mob.getX() - target.getX());
+    }
+
     private void tickCircle(LivingEntity target, ForbiddenChimeraConfig config) {
-        double angle = this.mob.tickCount * CIRCLE_SPEED;
+        double angle = this.circleStartAngle + (this.mob.tickCount - this.circleStartTick) * CIRCLE_SPEED;
         double x = target.getX() + Math.cos(angle) * CIRCLE_RADIUS;
         double z = target.getZ() + Math.sin(angle) * CIRCLE_RADIUS;
         this.mob.flyTowards(x, target.getY() + config.nuclearHoverHeight, z, config.nuclearApproachSpeed);
@@ -132,7 +168,7 @@ public class NuclearAttackGoal extends Goal {
         // The last stretch is spent parked and facing the player, so the dive reads as "locked on".
         int aimFrom = Math.max(0, config.nuclearHoverTicks - AIM_TICKS);
         if (this.phaseTicks > aimFrom) {
-            this.mob.flyTowards(this.mob.getX(), this.mob.getY(), this.mob.getZ(), 0.0D);
+            this.parkAndFace(target);
             return;
         }
 
@@ -143,6 +179,21 @@ public class NuclearAttackGoal extends Goal {
         }
         this.mob.flyTowards(this.hoverX, target.getY() + config.nuclearHoverHeight, this.hoverZ,
                 config.nuclearApproachSpeed);
+    }
+
+    /**
+     * Stops dead and points the whole body at the target.
+     *
+     * <p>The order matters and is the reason this is a method rather than two lines at the call site.
+     * The flight move control runs <b>after</b> the goals each tick and rewrites the body yaw from its own
+     * steering target, so a goal that merely calls {@code setYRot} is silently overruled. Aiming the move
+     * control at the mob's own position is what disarms it: the wanted point is then zero blocks away, the
+     * move control takes its "no distance to travel" branch and returns without touching the yaw, and the
+     * facing written here survives. Only then does {@link #faceTowards} mean anything.
+     */
+    private void parkAndFace(LivingEntity target) {
+        this.mob.flyTowards(this.mob.getX(), this.mob.getY(), this.mob.getZ(), 0.0D);
+        this.faceTowards(target);
     }
 
     /**
@@ -179,7 +230,22 @@ public class NuclearAttackGoal extends Goal {
 
     private void tickCharge(LivingEntity target, ForbiddenChimeraConfig config) {
         this.chargeTicks++;
-        this.mob.flyTowards(target.getX(), target.getY(0.5D), target.getZ(), config.nuclearChargeSpeed);
+
+        // The move control works out the body yaw from the bearing of the point it is steering at, and
+        // LookControl then clamps the head to +-40 degrees of that body yaw - so a body facing the wrong
+        // way drags the head off the player no matter what the look control asks for. The bearing is kept
+        // from the last tick where it was well defined, which is what stops the nose from swinging away
+        // once the mob is close enough to be almost directly above the player.
+        double dx = target.getX() - this.mob.getX();
+        double dz = target.getZ() - this.mob.getZ();
+        double horizontal = Math.sqrt(dx * dx + dz * dz);
+        if (horizontal >= CHARGE_MIN_HORIZONTAL) {
+            this.chargeDirX = dx / horizontal;
+            this.chargeDirZ = dz / horizontal;
+        }
+        double steerX = this.mob.getX() + this.chargeDirX * CHARGE_MIN_HORIZONTAL;
+        double steerZ = this.mob.getZ() + this.chargeDirZ * CHARGE_MIN_HORIZONTAL;
+        this.mob.flyTowards(steerX, target.getY(0.5D), steerZ, config.nuclearChargeSpeed);
 
         boolean contact = this.mob.getBoundingBox().inflate(0.6D).intersects(target.getBoundingBox());
         if (contact || this.chargeTicks >= config.nuclearChargeMaxTicks) {
@@ -187,15 +253,42 @@ public class NuclearAttackGoal extends Goal {
         }
     }
 
-    /** Goes off where it stands: the blast is the whole point of this chimera. */
+    /**
+     * Writes the body, head and pitch needed to look at the target, all three in one go.
+     *
+     * <p>Only useful once the move control has been parked (see {@link #parkAndFace}); while it is
+     * actively steering it rewrites the yaw again later in the same tick and this would be discarded.
+     * {@code yBodyRot} and {@code yHeadRot} are set alongside {@code yRot} because the body turn is what
+     * the renderer reads and the head turn otherwise lags a tick behind it.
+     */
+    private void faceTowards(LivingEntity target) {
+        double dx = target.getX() - this.mob.getX();
+        double dy = target.getEyeY() - this.mob.getEyeY();
+        double dz = target.getZ() - this.mob.getZ();
+        double horizontal = Math.sqrt(dx * dx + dz * dz);
+
+        float yaw = (float) (Mth.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+        float pitch = (float) (-(Mth.atan2(dy, horizontal) * (180.0D / Math.PI)));
+        this.mob.setYRot(yaw);
+        this.mob.setYBodyRot(yaw);
+        this.mob.setYHeadRot(yaw);
+        this.mob.setXRot(pitch);
+    }
+
+    /** Goes off where it stands: the blast is the whole point of this chimera, fire included. */
     private void detonate() {
         if (!(this.mob.level() instanceof ServerLevel serverLevel)) {
             return;
         }
         ForbiddenChimeraConfig config = ForbiddenChimeraConfig.get();
         this.mob.setNuclearPhase(NuclearCreeperPhantomEntity.PHASE_DETONATE);
-        ChimeraExplosion.explode(serverLevel, this.mob, this.mob.getX(), this.mob.getY(), this.mob.getZ(),
-                (float) config.nuclearExplosionRadius);
+        double x = this.mob.getX();
+        double y = this.mob.getY();
+        double z = this.mob.getZ();
+        ChimeraExplosion.explode(serverLevel, this.mob, x, y, z, (float) config.nuclearExplosionRadius);
+        // A plain explosion does not set anything on fire, and this one is meant to be a small nuke.
+        ChimeraFire.burnAfterExplosion(serverLevel, x, y, z, config.nuclearExplosionRadius,
+                config.nuclearExplosionFireTicks, config.nuclearExplosionFireChance);
         this.mob.kill(serverLevel);
     }
 }

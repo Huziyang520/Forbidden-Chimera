@@ -11,10 +11,14 @@ import org.jspecify.annotations.Nullable;
 /**
  * Player targeting that also accepts creative players.
  *
- * <p>Vanilla combat targeting rejects any target whose {@code canBeSeenAsEnemy()} is false, and
- * {@code Player#canBeSeenAsEnemy} is false whenever the player is invulnerable - which is exactly the
- * case in creative mode. Without this goal the chimeras simply never find anything to attack while the
- * player builds or tests in creative.
+ * <p><b>Why this goal alone was never enough.</b> It writes the target with {@code Mob#setTarget}, which
+ * passes the value through {@code Mob#asValidTarget} - and vanilla's version returns {@code null} for any
+ * player who is creative or spectator. {@code Mob#getTarget} filters the stored field through the same
+ * method again. So the write below was silently discarded and {@code attackCreativePlayers} did nothing in
+ * either position: the chimeras simply never acquired a target in creative mode. The fix is the
+ * {@code asValidTarget} override that goes with this goal, see
+ * {@link ChimeraTargeting} - this class only decides <em>which</em> player, that one decides whether the
+ * engine will keep it.
  *
  * <p>The goal never actually runs: it only writes the target and answers {@code false}, so it cannot
  * conflict with the combat goals that read that target. {@code attackCreativePlayers} restores the

@@ -1,6 +1,7 @@
 package com.huziyang520.forbiddenchimera.entity;
 
 import com.huziyang520.forbiddenchimera.ai.ChimeraSteering;
+import com.huziyang520.forbiddenchimera.ai.ChimeraTargeting;
 import com.huziyang520.forbiddenchimera.world.PhantomRider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvent;
@@ -134,5 +135,21 @@ public abstract class AbstractChimeraPhantom extends Mob implements Enemy, Chime
     @Override
     public @Nullable LivingEntity getControllingPassenger() {
         return null;
+    }
+
+    /**
+     * Lets a chimera hold a creative or spectator player as its target when the config allows it.
+     *
+     * <p>Why this override is needed at all: {@code Mob#setTarget} runs every value through
+     * {@code asValidTarget}, which returns {@code null} for any player that is creative or spectator -
+     * and {@code Mob#getTarget} filters the stored field through it again. So writing the target from
+     * {@link com.huziyang520.forbiddenchimera.ai.ChimeraPlayerTargetGoal} was silently discarded, and
+     * {@code attackCreativePlayers} did nothing in either position. See
+     * {@link com.huziyang520.forbiddenchimera.ai.ChimeraTargeting} for the rule itself; with the config
+     * off it reproduces vanilla exactly.
+     */
+    @Override
+    protected @Nullable LivingEntity asValidTarget(@Nullable LivingEntity target) {
+        return ChimeraTargeting.filter(this, target);
     }
 }

@@ -3,6 +3,7 @@ package com.huziyang520.forbiddenchimera.mixin;
 import com.huziyang520.forbiddenchimera.Constants;
 import com.huziyang520.forbiddenchimera.ai.ChimeraPlayerTargetGoal;
 import com.huziyang520.forbiddenchimera.ai.ChimeraSteering;
+import com.huziyang520.forbiddenchimera.ai.ChimeraTargeting;
 import com.huziyang520.forbiddenchimera.ai.RiderChargeGoal;
 import com.huziyang520.forbiddenchimera.ai.ThrowerDropGoal;
 import com.huziyang520.forbiddenchimera.config.ForbiddenChimeraConfig;
@@ -159,6 +160,24 @@ public abstract class PhantomMixin implements ChimeraPhantom, ChimeraSteering {
         self.kill(serverLevel);
     }
 
+    // --- targeting ----------------------------------------------------------
+
+    /**
+     * Lets the two vanilla-phantom chimeras hold a creative or spectator player as their target.
+     *
+     * <p>{@code Mob#setTarget} runs every value through {@code asValidTarget}, which rejects creative and
+     * spectator players outright, and {@code Mob#getTarget} filters the stored field through it again - so
+     * the target {@link ChimeraPlayerTargetGoal} writes is dropped unless this is overridden. The mixin
+     * method is an ordinary override of {@code Mob}'s (the vanilla phantom does not define one).
+     *
+     * <p>No {@code @Override} here on purpose: this class does not extend {@code Mob}, so the annotation
+     * would not compile. Mixin merges the method into the target by name and descriptor, and
+     * {@code asValidTarget} is inherited from {@code Mob}, so it becomes a real override.
+     */
+    protected @Nullable LivingEntity asValidTarget(@Nullable LivingEntity target) {
+        return ChimeraTargeting.filter((Phantom) (Object) this, target);
+    }
+
     // --- ChimeraSteering ----------------------------------------------------
 
     @Override
@@ -180,6 +199,10 @@ public abstract class PhantomMixin implements ChimeraPhantom, ChimeraSteering {
             this.forbiddenChimera$variant =
                     ChimeraVariant.roll(self.getRandom(), ForbiddenChimeraConfig.get());
         }
+        // VANILLA（以及任何将来不携带货物的变体）必须在这里就退出：它得是一只<b>行为上完全原版</b>的
+        // 幻翼，不能挂 cargo 苦力怕、不能注入任何 Goal。判据是 carriesCargo() 这个显式白名单，
+        // 而不是"不等于 THROWER 就当骑士"——后者会把 VANILLA 误认成嵌合体，从而给它装上骑士的俯冲。
+        // 注意这里提前 return 不会漏掉初始化标记：本变体根本没有需要置位的标记，也没有每 tick 重试。
         if (!this.forbiddenChimera$variant.carriesCargo()) {
             return;
         }

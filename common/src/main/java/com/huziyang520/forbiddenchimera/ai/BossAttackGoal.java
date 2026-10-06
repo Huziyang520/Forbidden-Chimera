@@ -56,8 +56,6 @@ public class BossAttackGoal extends Goal {
 
     /** Contact test inflation, same as the other chimeras' attacks. */
     private static final double HIT_INFLATION = 0.6D;
-    /** Horizontal radius of the orbit. */
-    private static final double ORBIT_RADIUS = 16.0D;
     /** Radians of orbit per tick. */
     private static final double ORBIT_SPEED = 0.05D;
     /** Ticks the boss keeps flying after a dive. */
@@ -77,6 +75,15 @@ public class BossAttackGoal extends Goal {
     private static final int DARKNESS_TICKS = 40;
     /** Tick inside the darkness clip the pulse lands on. */
     private static final int DARKNESS_PULSE_TICK = 8;
+    /**
+     * 宽限判断最多把 orbit 延长这么多 tick。
+     *
+     * <p>存在的理由：{@code sideArmAge} 会被下一发侧臂射击清零，所以当
+     * {@code bossSideArmDiveGraceTicks} 大于 {@code bossSideArmCooldownTicks}（或者配成了负数以外的
+     * 极端值）时，"等年龄涨到宽限值"这件事永远不会发生。没有这个上限，首领就会永远停在 orbit，
+     * 火箭/俯冲/音波整条链都进不去。超时后照常放行，宽限只是"尽量等"，不是"必须等到"。
+     */
+    private static final int GRACE_MAX_DEFER_TICKS = 60;
 
     private final BossLightningCreeperPhantomKnightEntity mob;
     private int phase = PHASE_ORBIT;
@@ -86,6 +93,22 @@ public class BossAttackGoal extends Goal {
     private int shotsFired;
     /** True once the sonic boom of this phase has gone off. */
     private boolean sonicBoomFired;
+    /**
+     * 侧臂射击宽限已经连续推迟了多少 tick。
+     *
+     * <p>用 {@link #GRACE_MAX_DEFER_TICKS} 兜底，保证"等宽限"永远不会变成死循环：只要
+     * {@code bossSideArmDiveGraceTicks} 被配成大于 {@code bossSideArmCooldownTicks}，
+     * {@code sideArmAge} 就会在到达宽限值之前被下一发侧臂射击清零，单靠年龄判断永远等不到。
+     */
+    private int graceDeferTicks;
+    /**
+     * The orbit's zero point, re-anchored every time the boss returns to orbiting (see {@link #enterOrbit}).
+     *
+     * <p>The angle used to come from {@code mob.tickCount}, which is a plain field that is <b>not</b>
+     * persisted - a chunk reload restarted it at 0, so the boss snapped to a different bearing the moment
+     * the player came back. Anchored here, the orbit always resumes from where the boss actually is.
+     */
+    private double orbitAngle;
     /** Where the boss was on the previous dive tick, for the swept hit test. */
     private Vec3 lastDivePosition;
 
@@ -116,6 +139,7 @@ public class BossAttackGoal extends Goal {
         this.mob.setBossDiving(false);
         this.phase = PHASE_ORBIT;
         this.phaseTicks = 0;
+        this.graceDeferTicks = 0;
     }
 
     @Override
@@ -143,19 +167,63 @@ public class BossAttackGoal extends Goal {
     private void enterOrbit() {
         this.phase = PHASE_ORBIT;
         this.phaseTicks = 0;
+        // Anchor the orbit to where the boss already is, exactly like the nuclear chimera's circling:
+        // the angle used to be read off mob.tickCount, which is not persisted, so a chunk reload restarted
+        // the clock at 0 and the boss visibly jumped to a different bearing mid-orbit.
+        this.orbitAngle = this.bearingToTarget();
         this.mob.setBossAnimation(BossLightningCreeperPhantomKnightEntity.ANIM_FLY);
         this.mob.setBossDiving(false);
     }
 
+    /** The azimuth the boss currently sits at, seen from its target; 0 when it has none. */
+    private double bearingToTarget() {
+        LivingEntity target = this.mob.getTarget();
+        if (target == null) {
+            return 0.0D;
+        }
+        return Math.atan2(this.mob.getZ() - target.getZ(), this.mob.getX() - target.getX());
+    }
+
     private void tickOrbit(LivingEntity target, ForbiddenChimeraConfig config) {
-        double angle = this.mob.tickCount * ORBIT_SPEED;
+        double angle = this.orbitAngle + this.phaseTicks * ORBIT_SPEED;
         double x = target.getX() + Math.cos(angle) * config.bossOrbitRadius;
         double z = target.getZ() + Math.sin(angle) * config.bossOrbitRadius;
         this.mob.flyTowards(x, target.getY() + config.bossOrbitHeight, z, config.bossOrbitSpeed);
 
         if (this.phaseTicks >= config.bossOrbitTicks) {
+            // 宽限：刚打完侧臂那一发就贴脸冲锋，会把自己打出去的头颅炸到自己身上。
+            if (this.deferForSideArmGrace(config)) {
+                return;
+            }
             this.enterSpecial();
         }
+    }
+
+    /**
+     * 侧臂射击宽限判断：距上一次侧臂射击不足 {@code bossSideArmDiveGraceTicks} 时，是否应该推迟进入
+     * 特殊技 / 火箭（也就是推迟冲锋）。
+     *
+     * <p>放在这里的理由：火箭和俯冲是同一个冲锋动作的两段，{@code enterRocket()} 是它们唯一的入口，
+     * 而特殊技是冲锋前的最后一段滞空，所以这两个入口各查一次就覆盖了整条链。
+     *
+     * <p>不会变成死循环：{@code sideArmAge} 会被下一发侧臂射击清零，当宽限值大于侧臂间隔时永远等不到，
+     * 所以推迟次数由 {@link #GRACE_MAX_DEFER_TICKS} 封顶，超限就直接放行。计数只在真正放行时清零，
+     * 所以跨阶段（orbit → special → rocket）也是同一个预算，整体有界。
+     *
+     * @return true 表示这次应该继续留在当前阶段，false 表示宽限已满足（或已等够），可以往下走
+     */
+    private boolean deferForSideArmGrace(ForbiddenChimeraConfig config) {
+        if (this.mob.sideArmAge() >= config.bossSideArmDiveGraceTicks) {
+            this.graceDeferTicks = 0;
+            return false;
+        }
+        if (this.graceDeferTicks >= GRACE_MAX_DEFER_TICKS) {
+            // 等够了：宽限只是"尽量等"，不是"必须等到"，否则整条链都进不去。
+            this.graceDeferTicks = 0;
+            return false;
+        }
+        this.graceDeferTicks++;
+        return true;
     }
 
     private void enterSpecial() {
@@ -230,6 +298,11 @@ public class BossAttackGoal extends Goal {
     }
 
     private void enterRocket() {
+        // 冲锋前的最后一道宽限：侧臂刚射完就加速俯冲，等于往自己头颅的爆炸范围里扎。
+        if (this.deferForSideArmGrace(ForbiddenChimeraConfig.get())) {
+            // 继续悬停，等下一轮 tickSpecial 再试；阶段与动画都不变，所以看不出卡顿。
+            return;
+        }
         this.phase = PHASE_ROCKET;
         this.phaseTicks = 0;
         this.mob.setBossAnimation(BossLightningCreeperPhantomKnightEntity.ANIM_ROCKET_BOOST);

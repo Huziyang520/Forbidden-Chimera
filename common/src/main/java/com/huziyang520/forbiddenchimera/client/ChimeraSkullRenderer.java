@@ -44,6 +44,31 @@ public class ChimeraSkullRenderer
     private static final float SCROLL_PER_TICK = 0.01F;
     /** Vanilla overlay tint from {@code EnergySwirlLayer}. */
     private static final int POWER_TINT = -8355712;
+    /**
+     * 渲染朝向偏置：{@code +180}°。
+     *
+     * <p>为什么需要它（本项目 1.1.9 修的头颅反向 bug，推理链可复现）：
+     * <ul>
+     *   <li>{@link #submit} 照抄原版 {@code WitherSkullRenderer}，在提交模型前先
+     *       {@code scale(-1, -1, 1)}。这个缩放等价于绕 Z 轴转 180°，它会让<b>之后</b>在同一个
+     *       PoseStack 里做的 Y 轴旋转方向反号（{@code S·R_y(θ) ≠ R_y(-θ)·S}）。</li>
+     *   <li>旋转不是本渲染器施加的：{@code SkullModel#setupAnim} 把 {@code modelState.yRot} 写进
+     *       {@code ModelPart.yRot}，由 {@code ModelPart} 在<b>已缩放</b>的空间里
+     *       {@code Axis.YP.rotationDegrees(yRot)}（先 X 后 Y）。</li>
+     *   <li>实体旋转用原版 {@code Projectile#shoot} 约定（{@code yRot = atan2(dz,dx) - 90}，
+     *       {@code xRot = -atan2(dy,水平分量)}），{@link com.huziyang520.forbiddenchimera.entity.CreeperSkullProjectile#faceDirection}
+     *       每 tick 按真实速度重算，因此角度本身永远正确。</li>
+     *   <li>把模型空间的朝向 {@code (0,0,-1)}（苦力怕头颅的脸在 -Z）过一遍
+     *       {@code S·R_y(yRot)·R_x(xRot)}：水平分量 = 速度的<b>反向</b>，竖直分量与俯仰一致。
+     *       这正是实机看到的"头朝着反方向飞、上下角度却是对的"。</li>
+     *   <li>Y 旋转在镜像空间里反号，因此把偏置改成 {@code yRot + 180} 即水平、竖直同时正确，
+     *       <b>且俯仰角不需要动</b>（加 180° 是绕 Y 轴，R_x 不受影响）。</li>
+     * </ul>
+     *
+     * <p>放在渲染层而不是改 {@code faceDirection}：实体的 {@code getYRot()} 保持原版
+     * {@code shoot} 约定，不会有第二个消费者按错误约定去读它。
+     */
+    private static final float MODEL_YAW_CORRECTION = 180.0F;
 
     private final SkullModel model;
     private final boolean powered;
@@ -89,7 +114,7 @@ public class ChimeraSkullRenderer
         super.extractRenderState(entity, state, partialTicks);
         // No wobble: a missile head is rigid, only its facing changes.
         state.modelState.animationPos = 0.0F;
-        state.modelState.yRot = entity.getYRot(partialTicks);
+        state.modelState.yRot = entity.getYRot(partialTicks) + MODEL_YAW_CORRECTION;
         state.modelState.xRot = entity.getXRot(partialTicks);
     }
 

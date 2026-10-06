@@ -1,5 +1,6 @@
 package com.huziyang520.forbiddenchimera.world;
 
+import com.huziyang520.forbiddenchimera.config.ForbiddenChimeraConfig;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Explosion;
@@ -64,33 +65,65 @@ public final class ChimeraExplosion {
      */
     public static void explode(ServerLevel level, @Nullable Entity source, @Nullable Entity protectedEntity,
                                double x, double y, double z, float radius, float protectedEntityFactor) {
+        explode(level, source, protectedEntity, x, y, z, radius, protectedEntityFactor,
+                (float) ForbiddenChimeraConfig.get().riderExplosionDamageFactor);
+    }
+
+    /**
+     * {@link #explode(ServerLevel, Entity, Entity, double, double, double, float, float)} with an explicit
+     * factor for the protected entity's <b>riders</b>.
+     *
+     * <p>This is what keeps a knight's or the boss's baby zombie from being killed by its own mount's
+     * blast: the rider is a passenger of the shooter, so it is inside every explosion the mount makes and
+     * would otherwise take full damage. It is deliberately expressed as "whoever rides the protected
+     * entity" rather than by checking the ownership tag, so it works for any future carried passenger and
+     * needs no mixin on the vanilla zombie.
+     *
+     * @param riderFactor damage multiplier for the protected entity's passengers, 0.1 means 90% off.
+     */
+    public static void explode(ServerLevel level, @Nullable Entity source, @Nullable Entity protectedEntity,
+                               double x, double y, double z, float radius, float protectedEntityFactor,
+                               float riderFactor) {
         if (radius <= 0.0F) {
             return;
         }
 
         ExplosionDamageCalculator calculator = protectedEntity == null
                 ? null
-                : new ReducedEntityDamageCalculator(protectedEntity, protectedEntityFactor);
+                : new ReducedEntityDamageCalculator(protectedEntity, protectedEntityFactor, riderFactor);
 
         // A null damage source makes vanilla build the usual explosion damage source from `source`.
         level.explode(source, null, calculator, x, y, z, radius, false, Level.ExplosionInteraction.BLOCK);
     }
 
-    /** Scales the blast damage taken by exactly one entity, leaving the vanilla maths untouched. */
+    /**
+     * Scales the blast damage taken by the protected entity and by anyone riding it, leaving the vanilla
+     * maths untouched.
+     */
     private static final class ReducedEntityDamageCalculator extends ExplosionDamageCalculator {
 
         private final Entity protectedEntity;
         private final float factor;
+        private final float riderFactor;
 
-        private ReducedEntityDamageCalculator(Entity protectedEntity, float factor) {
+        private ReducedEntityDamageCalculator(Entity protectedEntity, float factor, float riderFactor) {
             this.protectedEntity = protectedEntity;
             this.factor = factor;
+            this.riderFactor = riderFactor;
         }
 
         @Override
         public float getEntityDamageAmount(Explosion explosion, Entity entity, float exposure) {
             float damage = super.getEntityDamageAmount(explosion, entity, exposure);
-            return entity == this.protectedEntity ? damage * this.factor : damage;
+            if (entity == this.protectedEntity) {
+                return damage * this.factor;
+            }
+            // getRootVehicle is the mount itself for a passenger, and the entity itself otherwise, so this
+            // matches direct and nested riders alike without walking the vehicle chain by hand.
+            if (entity.getRootVehicle() == this.protectedEntity) {
+                return damage * this.riderFactor;
+            }
+            return damage;
         }
     }
 }
