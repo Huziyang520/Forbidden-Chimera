@@ -61,7 +61,7 @@ First launch writes `config/forbidden_chimera.json`; it is plain JSON, open it i
 | Key | Meaning |
 |---|---|
 | `enable*` / `*SpawnWeight` | Toggle each creature / its natural-spawn weight (0 = never spawns naturally). `vanillaSpawnWeight` (4) is the **plain vanilla phantom's** share — set it to 0 and the chimeras fully replace the vanilla phantom |
-| `attackCreativePlayers` | On by default: creative players are valid targets too |
+| `attackCreativePlayers` | Off by default: the chimeras ignore creative / invulnerable players, exactly like vanilla. Turn it on only if you want to test their aggression from creative mode. Plain vanilla phantoms always ignore them |
 | `spearVariantChance` / `knightVariantChance` | Variant chances (both 0.10 by default) |
 | `riderMaxHealth` / `riderExplosionDamageFactor` | Health of the baby zombie on a mount's back (50, vanilla zombies have 20) / explosion damage taken by a **passenger of the blast source** (0.1 = 90% off) |
 | `diverSalvoCount` / `diverSalvoIntervalTicks` | Skull salvo fired from the staging point **before** the dive / interval between them (3 / 12). The real cadence is the slower of this and `diverFireCooldownTicks`; set the count to 0 for the old "fire only while diving" behaviour |
@@ -157,7 +157,7 @@ MIT.
 |---|---|
 | `enablePhantomRiderCreeper` / `enableCreeperThrowerPhantom` / `enableCreeperPhantom` / `enableLightningCreeperPhantom` / `enableNuclearCreeperPhantom` / `enableEndermanPhantom` | 分别开关六种生物 |
 | `riderSpawnWeight` / `throwerSpawnWeight` / `vanillaSpawnWeight` / `diverSpawnWeight` / `lightningDiverSpawnWeight` / `nuclearSpawnWeight` / `endermanSpawnWeight` | 自然生成权重（默认 3/3/**4**/4/1/1/3），改成 0 就不再自然生成。`vanillaSpawnWeight` 是**纯原版幻翼**的权重——它保证自然生成里仍有原版幻翼，改成 0 就等于让嵌合体完全顶掉原版幻翼 |
-| `attackCreativePlayers` | 默认开启：创造模式玩家也会被它们盯上。想按原版规则（不攻击无敌玩家）就把这里改成 `false` |
+| `attackCreativePlayers` | 默认**关闭**：创造模式 / 无敌玩家不会被它们盯上，与原版一致（老配置会自动迁移成 `false`）。想用创造模式测试它们的攻击性就改成 `true`。**纯原版幻翼永远不吃这个键** |
 | `chimeraSpawnerUsesPhantomGameRule` | 默认开启：`/gamerule spawn_phantoms false` 会连同本模组一起关掉。想单独保留它们就改成 `false` |
 | `riderChargeSpeed` / `riderDetonateDistanceSqr` | 骑士（mob1）的俯冲速度、引爆距离 |
 | `throwerHoverHeight` / `throwerThrowCooldownTicks` / `throwerThrowSpeed` | 投手悬停高度、投掷间隔、投出速度 |

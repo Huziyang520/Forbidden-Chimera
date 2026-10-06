@@ -173,9 +173,20 @@ public abstract class PhantomMixin implements ChimeraPhantom, ChimeraSteering {
      * <p>No {@code @Override} here on purpose: this class does not extend {@code Mob}, so the annotation
      * would not compile. Mixin merges the method into the target by name and descriptor, and
      * {@code asValidTarget} is inherited from {@code Mob}, so it becomes a real override.
+     *
+     * <p><b>This override sits on every vanilla phantom in the world</b>, including the ones that are not
+     * chimeras at all, so the creative exemption is applied per instance: only {@link ChimeraVariant#RIDER}
+     * and {@link ChimeraVariant#THROWER} go through {@link ChimeraTargeting#filter}. A phantom that rolled
+     * {@link ChimeraVariant#VANILLA} - or has not been decided yet - gets {@code vanillaFilter} and stays
+     * byte-for-byte vanilla in this respect, whatever {@code attackCreativePlayers} says. Without that
+     * split, turning the key on would make <b>plain phantoms</b> hunt creative-mode players, which is a
+     * vanilla behaviour regression and not a configurable feature.
      */
     protected @Nullable LivingEntity asValidTarget(@Nullable LivingEntity target) {
-        return ChimeraTargeting.filter((Phantom) (Object) this, target);
+        Phantom self = (Phantom) (Object) this;
+        return this.forbiddenChimera$variant.carriesCargo()
+                ? ChimeraTargeting.filter(self, target)
+                : ChimeraTargeting.vanillaFilter(self, target);
     }
 
     // --- ChimeraSteering ----------------------------------------------------

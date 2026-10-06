@@ -32,7 +32,7 @@ public final class ForbiddenChimeraConfig {
      * <p>只增不改：调整了<b>已有键的默认值</b>、并且希望老配置文件也吃到新默认值时 +1，
      * 同时在 {@link #migrateStoredDefaults(JsonObject)} 里补上对应的覆盖逻辑。
      */
-    private static final int CONFIG_VERSION = 2;
+    private static final int CONFIG_VERSION = 3;
 
     private static ForbiddenChimeraConfig instance = new ForbiddenChimeraConfig();
     private static Path configFile;
@@ -55,11 +55,16 @@ public final class ForbiddenChimeraConfig {
     // --- shared behaviour --------------------------------------------------
     /**
      * Vanilla combat targeting never sees a creative player as an enemy
-     * ({@code Player#canBeSeenAsEnemy} returns false while invulnerable), so the chimeras look
-     * completely passive when they are tested from creative mode. Keep this on while testing and set
-     * it to false for vanilla-like behaviour in normal play.
+     * ({@code Mob#asValidTarget} returns null while invulnerable), so the chimeras look completely passive
+     * when they are tested from creative mode.
+     *
+     * <p><b>Default is {@code false}</b>（2026-10-06 用户实机回报后翻转，见决策记录 D45）：追赶创造模式玩家是原版行为回归，不是特性，公开发布的模组不该默认这么做。想用创造模式测试嵌合体的攻击性就把它改回 {@code true} —— 这个键存在的唯一理由就是这个。
+     *
+     * <p>Note this only ever applied to the <b>chimeras</b>: a plain vanilla phantom is filtered through
+     * {@link com.huziyang520.forbiddenchimera.ai.ChimeraTargeting#vanillaFilter} and is therefore immune
+     * to this key entirely.
      */
-    public boolean attackCreativePlayers = true;
+    public boolean attackCreativePlayers = false;
 
     // --- phantom model geometry (read-only facts, kept here as documentation) ----------
     //
@@ -454,12 +459,23 @@ public final class ForbiddenChimeraConfig {
         // v1 -> v2：玩家反馈核弹幻翼盘旋太久、爆炸范围偏小。
         // 只覆盖这两个键：它们的旧默认值（100 / 8.0）本身就是"默认值"，不是玩家的调参结果，
         // 所以升级不会踩掉任何有意为之的配置。
-        stored.addProperty("nuclearCircleTicks", 40);
-        stored.addProperty("nuclearExplosionRadius", 10.0D);
+        if (storedVersion < 2) {
+            stored.addProperty("nuclearCircleTicks", 40);
+            stored.addProperty("nuclearExplosionRadius", 10.0D);
+        }
+
+        // v2 -> v3：本模组生物会攻击创造模式玩家（用户 2026-10-06 实机回报）。老配置里存着的正是旧默认值
+        // true，所以必须显式改写，否则"文件里的值优先"会让修复看起来没生效。
+        if (storedVersion < 3) {
+            stored.addProperty("attackCreativePlayers", false);
+        }
+
         stored.addProperty("configVersion", CONFIG_VERSION);
         Constants.LOG.info(
                 "已升级配置默认值 {} -> {}：核弹苦力怕幻翼的盘旋时长 nuclearCircleTicks=40、"
-                        + "爆炸半径 nuclearExplosionRadius=10.0（只覆盖这两项，其它键保持你的设置）",
+                        + "爆炸半径 nuclearExplosionRadius=10.0、"
+                        + "不再默认攻击创造模式玩家 attackCreativePlayers=false"
+                        + "（只覆盖这几项，其它键保持你的设置）",
                 storedVersion, CONFIG_VERSION);
     }
 

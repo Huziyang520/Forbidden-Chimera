@@ -30,8 +30,8 @@ def API_BASE = 'https://api.modrinth.com/v2'
 def GECKOLIB_SLUG = 'geckolib'   // 前置：GeckoLib 必装。其项目 ID 由公开接口现查，不硬编码。
 
 def MODULES = [
-    'fabric'  : [jar: 'fabric/build/libs/forbidden_chimera-1.1.10-fabric-26.3.jar',     loader: 'fabric',   version: '1.1.10-fabric',   name: 'Forbidden Chimera 1.1.10 (Fabric) for Minecraft 26.3'],
-    'neoforge': [jar: 'neoforge/build/libs/forbidden_chimera-1.1.10-neoforge-26.3.jar', loader: 'neoforge', version: '1.1.10-neoforge', name: 'Forbidden Chimera 1.1.10 (NeoForge) for Minecraft 26.3'],
+    'fabric'  : [jar: 'fabric/build/libs/forbidden_chimera-1.1.11-fabric-26.3.jar',     loader: 'fabric',   version: '1.1.11-fabric',   name: 'Forbidden Chimera 1.1.11 (Fabric) for Minecraft 26.3'],
+    'neoforge': [jar: 'neoforge/build/libs/forbidden_chimera-1.1.11-neoforge-26.3.jar', loader: 'neoforge', version: '1.1.11-neoforge', name: 'Forbidden Chimera 1.1.11 (NeoForge) for Minecraft 26.3'],
 ]
 
 gradle.rootProject {

@@ -20,6 +20,11 @@ import org.jspecify.annotations.Nullable;
  * for mob1/mob2, which are real vanilla phantoms. The mixin cannot call {@code super.asValidTarget(...)}
  * - its own class does not extend {@code Mob} - so both go through here instead.
  *
+ * <p><b>Which entry point each caller uses matters.</b> {@link #filter(Mob, LivingEntity)} honours
+ * {@code attackCreativePlayers}; {@link #vanillaFilter(Mob, LivingEntity)} does not. The mixin picks
+ * per instance: only a phantom that actually plays a chimera role (RIDER / THROWER) is allowed the
+ * exemption, because the override sits on <b>every</b> {@code Phantom} in the world.
+ *
  * <p>The rest of the method reproduces the vanilla rule exactly, including the {@code canAttack} check, so
  * turning {@code attackCreativePlayers} off is indistinguishable from vanilla behaviour.
  */
@@ -37,8 +42,26 @@ public final class ChimeraTargeting {
      * they are not playing.
      */
     public static @Nullable LivingEntity filter(Mob mob, @Nullable LivingEntity target) {
-        if (target instanceof Player player
-                && ForbiddenChimeraConfig.get().attackCreativePlayers
+        return filter(mob, target, ForbiddenChimeraConfig.get().attackCreativePlayers);
+    }
+
+    /**
+     * Vanilla {@code Mob#asValidTarget}, with the creative exemption <b>unconditionally off</b>.
+     *
+     * <p>Used by the one caller that must stay vanilla no matter what the config says: the
+     * {@code PhantomMixin} override, which every vanilla phantom in the world runs through - including the
+     * ones that are <b>not</b> chimeras. A plain phantom that chases creative-mode players because a
+     * config key was on would be a vanilla behaviour regression, and "a vanilla phantom behaves exactly
+     * like vanilla" is not negotiable for this mod.
+     */
+    public static @Nullable LivingEntity vanillaFilter(Mob mob, @Nullable LivingEntity target) {
+        return filter(mob, target, false);
+    }
+
+    private static @Nullable LivingEntity filter(Mob mob, @Nullable LivingEntity target,
+                                                 boolean allowCreative) {
+        if (allowCreative
+                && target instanceof Player player
                 && !player.isSpectator()
                 && (player.isCreative() || player.getAbilities().invulnerable)) {
             return target;
